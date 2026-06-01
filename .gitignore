@@ -1,0 +1,9 @@
+my_cpp/build/
+my_cpp/.cache/
+my_os/opensbi/build/
+my_os/*.img
+my_os/*.out
+my_os/a.out
+my_os/.swp
+**/.cache/
+**/build/
