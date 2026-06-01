@@ -5,5 +5,9 @@ my_os/*.img
 my_os/*.out
 my_os/a.out
 my_os/.swp
+my_os/hello
+my_os/hello_2
+my_os/start
 **/.cache/
 **/build/
+.claude/
