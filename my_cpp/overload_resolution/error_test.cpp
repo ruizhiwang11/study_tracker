@@ -13,6 +13,8 @@
 // is not part of the signature used for selection.
 // Declaring two functions with the same name + params but different return types
 // is an error (not an overload).
+#include <utility>
+#include <cassert>
 
 int b();
 // const int b();   // ERROR: return type differs, params identical — not a valid overload
@@ -161,6 +163,33 @@ struct O : P {
 };
 
 
+// ── 11. explicit constructor removes a candidate from the viable set ──────
+//
+// f1({{}, {}}):
+//   Two candidates: f1(Pair<E,E>) and f1(Pair<S1,S1>)
+//   Argument {{}, {}} must construct the Pair — each inner {} constructs one element.
+//
+//   Inner {} is in a copy-initialization context (function argument from braced-init).
+//   explicit constructors are EXCLUDED from copy-initialization.
+//
+//   Pair<E,E>:    E() is explicit → {} cannot implicitly construct E → NOT VIABLE
+//   Pair<S1,S1>:  S1() is non-explicit → {} can construct S1 → VIABLE ✓
+//
+//   Only one viable candidate → f1(Pair<S1,S1>) wins → returns 2.
+//
+// Key rule: explicit is not just a style hint — it directly controls which
+// overloads survive the viable function filter.
+
+template <class T1, class T2> struct Pair {
+    template <class U1 = T1, class U2 = T2> Pair(U1&&, U2&&) {}
+};
+
+struct S1 { S1() = default; };
+struct E  { explicit E() = default; };   // explicit blocks copy-init from {}
+int f1(Pair<E,E>)   { return 1; }        // not viable for f1({{},{}})
+int f1(Pair<S1,S1>) { return 2; }        // viable — wins
+
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 int main()
@@ -182,4 +211,6 @@ int main()
     // 10. template param T wins over M::T
     O<P> o;
     o.f();           // T = P → t.x = P::x = 2
+
+    assert(f1({{}, {}}) == 2);
 }
