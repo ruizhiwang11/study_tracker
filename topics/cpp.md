@@ -23,7 +23,59 @@
 - Memory ordering: store with release, load with acquire (on the index)
 - See: `my_cpp/ringbuffer/buffer.cpp`
 
+## Overload Resolution
+
+Three phases: **name lookup → overload resolution → access check**
+
+### Name Lookup
+- Unqualified: searches scopes outward from call site
+- ADL: also searches namespaces of each argument's type
+- Overloaded function names have no single address — must wrap in lambda to pass as template arg
+
+### Viable Function Filter
+1. Argument count matches (after defaults/variadic)
+2. Implicit conversion sequence (ICS) exists for each argument
+
+### ICS Ranking (best → worst)
+1. Exact match (or trivial decay)
+2. Qualification conversion (add const/volatile)
+3. Numeric promotion (int→long, float→double)
+4. Numeric conversion (int→double, lossy ok)
+5. User-defined conversion (ctor or operator T())
+6. Ellipsis `...` (worst)
+
+Best viable = all args at least as good, one strictly better. Tie → ambiguity error.
+
+### Lvalue/Rvalue Reference Overloading
+- `T&` binds lvalues only
+- `T&&` binds rvalues only
+- `const T&` binds both (universal fallback)
+- Forwarding ref (`T&&` in template): deduced as `T=int&` (lvalue) or `T=int` (rvalue)
+- Reference collapsing: `T& &&` → `T&`; `T&& &&` → `T&&`
+
+### Templates in Overload Resolution
+- Template deduction runs first; then template instantiation competes as a regular function
+- Non-template beats template on exact tie (more specialized)
+
+### Concepts — Partial Ordering
+- More constrained candidate wins over less constrained
+- Subsumption: A subsumes B if A's atomic constraints ⊇ B's
+- Non-template > more constrained template > less constrained template
+- See: `my_cpp/overload_Set/test.cpp` — `foo(int)` beats `requires Ord<T>` beats `requires Ord||Inc||Int`
+
+### Lambda wrapper pattern (important for HFT dispatch)
+```cpp
+// cannot pass overloaded set f directly — no single address
+auto call_f = [](auto&&... args) -> decltype(auto) {
+    return f(std::forward<decltype(args)>(args)...);
+};
+// lambda has single address; overload resolution happens inside at call time
+```
+See: `my_cpp/overload_Set/Callable.cpp`
+
 ## Weak points
 - `std::memory_order_acq_rel` vs separate acquire/release — when to use each
 - Hazard pointers / epoch-based reclamation for MPMC structures
 - `[[likely]]` / `[[unlikely]]` branch hints and their codegen effect
+- Overload resolution with multiple user-defined conversions (ambiguity rules)
+- `if constexpr` vs `requires` — when each is the right tool
