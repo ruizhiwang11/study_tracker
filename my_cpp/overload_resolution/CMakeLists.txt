@@ -1,0 +1,2 @@
+add_executable(hidden_friend hidden_friend.cpp)
+target_compile_features(hidden_friend PRIVATE cxx_std_23)
