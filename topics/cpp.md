@@ -28,9 +28,26 @@
 Three phases: **name lookup → overload resolution → access check**
 
 ### Name Lookup
-- Unqualified: searches scopes outward from call site
-- ADL: also searches namespaces of each argument's type
-- Overloaded function names have no single address — must wrap in lambda to pass as template arg
+
+**Core subroutine — single scope search:**
+- Search one scope for the name
+- If that scope is a class or template instantiation, also search its base classes
+- Single scope search is preferred — stops as soon as the name is found
+
+**Three modes, all using the same subroutine:**
+
+| Mode | When | How |
+|------|------|-----|
+| Unqualified | bare name | subroutine applied scope by scope outward; stop at first match |
+| ADL | unqualified function call, after unqualified lookup | subroutine repeated over namespaces associated with argument types |
+| Qualified | `X::name` | subroutine applied to X only — one scope, done |
+
+ADL is a second pass of the same subroutine, not a separate parallel mechanism.
+Qualified lookup skips unqualified and ADL entirely.
+
+**Qualified left-side rule:** in `N::X`, the `N` is looked up for namespace/class names only — ordinary variables are invisible there. So a local `int N` does not shadow namespace `N` in `N::X`.
+
+**Overloaded function names have no single address** — must wrap in a lambda so overload resolution happens inside where argument types are known.
 
 ### Viable Function Filter
 1. Argument count matches (after defaults/variadic)
