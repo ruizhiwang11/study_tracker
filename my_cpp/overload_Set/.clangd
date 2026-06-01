@@ -1,0 +1,3 @@
+CompileFlags:
+  Compiler: clang++-18
+  Add: [-std=c++23]
